@@ -1,6 +1,6 @@
 import pommerman
 from pommerman.agents.simple_agent import SimpleAgent
-from pommerman.agents.mcts_agent import MctsAgent
+from pommerman.agents.mcts_agent_old import MctsAgent
 
 
 def main():

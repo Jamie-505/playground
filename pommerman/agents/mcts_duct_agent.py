@@ -193,12 +193,12 @@ def profile_runner(id, num_episodes, fifo, _args):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument('--profile')
-  parser.add_argument('--render', action="store_true", default=True)
+  parser.add_argument('--render', action="store_true", default=False)
   # runner params
   parser.add_argument('--num_episodes', type=int, default=400)
   parser.add_argument('--num_runners', type=int, default=1)
   # MCTS params
-  parser.add_argument('--mcts_iters', type=int, default=5)
+  parser.add_argument('--mcts_iters', type=int, default=10)
   parser.add_argument('--mcts_c_puct', type=float, default=1.0)
   # RL params
   parser.add_argument('--discount', type=float, default=0.99)

@@ -85,6 +85,7 @@ class MCTSAgent(BaseAgent):
       while not done:
         if state in self.tree:
           node = self.tree[state]
+
           # choose actions based on Q + U
           action = node.action()
           trace.append((node, action))

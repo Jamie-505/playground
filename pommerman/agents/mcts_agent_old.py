@@ -47,17 +47,19 @@ class MctsAgent(BaseAgent):
 
         length = 0
         done = False
-        tree = {}
         while not done:
             if args.render:
                 self.env.render()
 
-            action, tree = uct(self, state, tree, args.mcts_iters, args.print_tree)
+            action, self.tree = uct(self, state, self.tree, args.mcts_iters, args.print_tree)
+            if args.render:
+                self.env.render()
             actions = self.env.act(obs)
             actions.insert(self.agent_id, action)
             obs, rewards, done, info = self.env.step(actions)
             state = self.env.get_json_info()
             assert self == self.env._agents[self.agent_id]
+            length += 1
             print("Agent:", self.agent_id, "Step:", length, "Actions:", [constants.Action(a).name for a in actions], "Rewards:", rewards, "Done:", done)
 
         reward = rewards[self.agent_id]
@@ -93,10 +95,10 @@ if __name__ == "__main__":
     parser.add_argument('--render', action="store_true", default=True)
     # runner params
     parser.add_argument('--num_episodes', type=int, default=400)
-    parser.add_argument('--num_runners', type=int, default=1)
+    parser.add_argument('--num_runners', type=int, default=4)
     # MCTS params
-    parser.add_argument('--mcts_iters', type=int, default=5)
-    parser.add_argument('--print_tree', type=bool, default=False)
+    parser.add_argument('--mcts_iters', type=int, default=20)
+    parser.add_argument('--print_tree', type=bool, default=True)
     parser.add_argument('--mcts_c_puct', type=float, default=1.0)
     # RL params
     parser.add_argument('--discount', type=float, default=0.99)

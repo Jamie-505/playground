@@ -90,6 +90,8 @@ class MCTNode:
 
 def uct(agent, root_state, tree, itermax, verbose=False):
     rewards = [0, 0, 0, 0]
+    done = False
+    
     assert agent.env.training_agent == agent.agent_id
     agent.env._init_game_state = root_state
     obs = agent.env.reset() # sets env to _init_game_state and return obs
@@ -119,8 +121,7 @@ def uct(agent, root_state, tree, itermax, verbose=False):
 
         # Simulate
         steps = 0
-        done = False
-        print("SIMULATION BEGINS:\n")
+        print("\nSIMULATION BEGINS:")
         while not done:
             agent.env.render()
 
@@ -153,5 +154,5 @@ def uct(agent, root_state, tree, itermax, verbose=False):
 
     # restore to _init_game_state, so "real" game can continue
     agent.env.set_json_info()
-    return sorted(rootnode.children, key=lambda c: c.visits)[
-               -1].get_action, tree  # return the move that was most visited
+    chosen_action = sorted(rootnode.children, key=lambda c: c.visits)[-1].get_action()
+    return chosen_action, tree  # return the move that was most visited

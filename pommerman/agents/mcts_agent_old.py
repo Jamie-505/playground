@@ -7,9 +7,13 @@ import pommerman
 from pommerman.agents import BaseAgent, SimpleAgent, RandomAgent
 from pommerman import constants
 
-from pommerman.mcts.mcts import uct
+from pommerman.mcts.mcts_duct import uct as duct
+from pommerman.mcts.mcts_exp3 import uct as exp3
 
 NUM_AGENTS = 4
+
+DUCT = 'duct'
+EXP3 = 'exp3'
 
 class MctsAgent(BaseAgent):
 
@@ -51,7 +55,11 @@ class MctsAgent(BaseAgent):
             if args.render:
                 self.env.render()
 
-            action, self.tree = uct(self, state, self.tree, args.mcts_iters, args.print_tree)
+            if args.algorithm == DUCT:
+                action, self.tree = duct(self, state, self.tree, args.mcts_iters, args.print_tree)
+            else:
+                action, self.tree = exp3(self, state, self.tree, args.mcts_iters, args.print_tree)
+
             if args.render:
                 self.env.render()
             actions = self.env.act(obs)
@@ -94,12 +102,13 @@ if __name__ == "__main__":
     parser.add_argument('--profile')
     parser.add_argument('--render', action="store_true", default=True)
     # runner params
-    parser.add_argument('--num_episodes', type=int, default=400)
-    parser.add_argument('--num_runners', type=int, default=4)
+    parser.add_argument('--num_episodes', type=int, default=1)
+    parser.add_argument('--num_runners', type=int, default=1)
     # MCTS params
     parser.add_argument('--mcts_iters', type=int, default=20)
     parser.add_argument('--print_tree', type=bool, default=True)
     parser.add_argument('--mcts_c_puct', type=float, default=1.0)
+    parser.add_argument('--algorithm', default='exp3')
     # RL params
     parser.add_argument('--discount', type=float, default=0.99)
     parser.add_argument('--temperature', type=float, default=0)

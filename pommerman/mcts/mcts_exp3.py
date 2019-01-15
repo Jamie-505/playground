@@ -2,15 +2,18 @@ from pommerman.forward_model import ForwardModel
 import random
 from math import *
 from pommerman import constants
+import numpy as np
 
 act = ForwardModel.act
 step = ForwardModel.step
 
 """
-A quick Monte Carlo Tree Search implementation.  For more details on MCTS see See http://pubs.doc.ic.ac.uk/survey-mcts-methods/survey-mcts-methods.pdf
+A quick Monte Carlo Tree Search implementation.
+For more details on MCTS see See http://pubs.doc.ic.ac.uk/survey-mcts-methods/survey-mcts-methods.pdf
 
 The State is just a game where you have NUM_TURNS and at turn i you can make
-a choice from [-2,2,3,-3]*i and this to to an accumulated value.  The goal is for the accumulated value to be as close to 0 as possible.
+a choice from [-2,2,3,-3]*i and this to to an accumulated value.
+The goal is for the accumulated value to be as close to 0 as possible.
 
 The game is not very interesting but it allows one to study MCTS which is.  Some features 
 of the example by design are that moves do not commute and early mistakes are more costly.  
@@ -21,11 +24,10 @@ In particular there are two models of best child that one can use
 
 class MCTNode:
 
-    # TODO: use act with obs.enemies to get actions for step
-    # TODO: use step for simulations
-
     def __init__(self, agent_id, action=0, parent=None):
         self.action = action
+        # probability with which the action was sampled, defaults to 1/6
+        self.probability = 1/6
         self.agent_id = agent_id
         self.children = []
         self.parent = parent
@@ -35,15 +37,39 @@ class MCTNode:
         self.visits = 0
         self.done = False
 
+    # only gets called if fully expanded
     def select_child(self):
-        # select child node via UCB formula
-        selection = sorted(self.children, key=lambda c: c.reward_sum/c.visits + sqrt(2*log(self.visits) / c.visits))
-        return selection[-1]
+        # select child with exp3 formula
+
+        p_distro, rewards, e_nu_omega = [], [], []
+        # 1 - gamma
+        pre = 5/6
+        # |A| = 6 and gamma = 1/6
+        nu = 1 / 36
+        # get all rewards so the sum and max reward can be calculated
+        for c in self.children:
+            rewards.append(c.get_reward())
+        max_r = np.amax(rewards)
+        for c in self.children:
+            e_nu_omega.append(exp(nu*(c.get_reward() - max_r)))
+        sum_e_nu_omega = sum(e_nu_omega)
+        for i in range(6):
+            sigma = (pre * e_nu_omega[i] / sum_e_nu_omega) + nu
+            p_distro.append(sigma)
+            self.children[i].set_probability(sigma)
+
+        return np.random.choice(self.children, p=p_distro)
 
     def get_action(self):
         return self.action
 
-    def expand(self, action, rewards, done):
+    def get_reward(self):
+        return self.reward_sum
+
+    def set_probability(self, p):
+        self.probability = p
+
+    def expand(self, action, done):
         self.untried_actions.remove(action)
         child = MCTNode(self.agent_id, action, parent=self)
         child.set_final(done)
@@ -57,7 +83,7 @@ class MCTNode:
         self.visits += 1
         self.rewards = rewards
         corrected_rewards = self.corrected_rewards(rewards)
-        self.reward_sum += sum(corrected_rewards)
+        self.reward_sum += sum(corrected_rewards)/self.probability
 
     def final(self):
         return self.done
@@ -66,7 +92,8 @@ class MCTNode:
         self.done = done
 
     def __repr__(self):
-        return "[Action:" + constants.Action(self.action).name + " W/V:" + str(self.reward_sum) + "/" + str(self.visits) + " Untried:" + ''.join([constants.Action(a).name for a in self.untried_actions]) + "]"
+        return "[Action:" + constants.Action(self.action).name + " W/V:" + str(self.reward_sum) + "/" \
+               + str(self.visits)+ " Untried:" + ''.join([constants.Action(a).name for a in self.untried_actions]) + "]"
 
     def tree_to_string(self, indent):
         s = self.indent_string(indent) + str(self)
@@ -91,7 +118,7 @@ class MCTNode:
 def uct(agent, root_state, tree, itermax, verbose=False):
     rewards = [0, 0, 0, 0]
     done = False
-    
+
     assert agent.env.training_agent == agent.agent_id
     agent.env._init_game_state = root_state
     obs = agent.env.reset() # sets env to _init_game_state and return obs
@@ -116,7 +143,7 @@ def uct(agent, root_state, tree, itermax, verbose=False):
             actions = agent.env.act(obs)
             actions.insert(agent.agent_id, action)
             obs, rewards, done, info = agent.env.step(actions)
-            node = node.expand(action, rewards, done)
+            node = node.expand(action, done)
             tree[str(agent.env.get_json_info())] = node
 
         # Simulate
@@ -154,5 +181,15 @@ def uct(agent, root_state, tree, itermax, verbose=False):
 
     # restore to _init_game_state, so "real" game can continue
     agent.env.set_json_info()
-    chosen_action = sorted(rootnode.children, key=lambda c: c.visits)[-1].get_action()
+
+    #prepare final sampling
+    prob_final_unscaled = []
+    sum_visits = sum(list(map(lambda c: c.visits, rootnode.children)))
+    for c in rootnode.children:
+        prob_final_unscaled.append(max(0, (c.visits - (1/36) * sum_visits))/sum_visits)
+    # scale probs to 1
+    sum_probs = sum(prob_final_unscaled)
+    probs_final = list(map(lambda p: p/sum_probs, prob_final_unscaled))
+    chosen_action = np.random.choice(rootnode.children, p=probs_final).get_action()
+
     return chosen_action, tree  # return the move that was most visited

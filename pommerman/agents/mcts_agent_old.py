@@ -15,6 +15,7 @@ NUM_AGENTS = 4
 DUCT = 'duct'
 EXP3 = 'exp3'
 
+
 class MctsAgent(BaseAgent):
 
     def __init__(self, agent_id=0, *args, **kwargs):
@@ -81,6 +82,7 @@ def runner(id, num_episodes, fifo, _args):
     # make sure agents play at all positions
     agent_id = id % NUM_AGENTS
     agent = MctsAgent(agent_id=agent_id)
+    agent.args = args
 
     for i in range(num_episodes):
         # do rollout
@@ -100,7 +102,8 @@ def profile_runner(id, num_episodes, fifo, _args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--profile')
-    parser.add_argument('--render', action="store_true", default=True)
+    parser.add_argument('--render', action="store_true", default=False)
+    parser.add_argument('--render_simulation', action="store_true", default=False)
     # runner params
     parser.add_argument('--num_episodes', type=int, default=1)
     parser.add_argument('--num_runners', type=int, default=1)

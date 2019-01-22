@@ -151,7 +151,8 @@ def uct(agent, root_state, tree, itermax, verbose=False):
         steps = 0
         print("\nSIMULATION BEGINS:")
         while not done:
-            agent.env.render()
+            if agent.args.render_simulation:
+                agent.env.render()
 
             # ensure we are not called recursively
             assert agent.env.training_agent == agent.agent_id

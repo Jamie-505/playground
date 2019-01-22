@@ -43,6 +43,7 @@ class MCTNode:
 
         p_distro, rewards, e_nu_omega = [], [], []
         # 1 - gamma
+        # gamma is a parameter which influences the exploration, element of [0;1]
         pre = 5/6
         # |A| = 6 and gamma = 1/6
         nu = 1 / 36
